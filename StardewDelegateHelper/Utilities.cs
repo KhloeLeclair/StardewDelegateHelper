@@ -12,21 +12,22 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace StardewDelegateHelper;
 internal static class Utilities {
 
-	internal static bool TryGetArgument<T>(this AttributeData input, string name, int index, [NotNullWhen(true)] out T? result) {
-		if (input.ConstructorArguments.Length > index && input.ConstructorArguments[index].Value is T val) {
+	internal static bool TryGetArgument<T>(this AttributeData input, string? name, int index, [NotNullWhen(true)] out T? result) {
+		if (index != -1 && input.ConstructorArguments.Length > index && input.ConstructorArguments[index].Kind != TypedConstantKind.Error && input.ConstructorArguments[index].Value is T val) {
 			result = val;
 			return result is not null;
 		}
 
-		foreach (var arg in input.NamedArguments) {
-			if (arg.Key.Equals(name, System.StringComparison.OrdinalIgnoreCase)) {
-				if (arg.Value.Value is T val2) {
-					result = val2;
-					return result is not null;
+		if (name != null)
+			foreach (var arg in input.NamedArguments) {
+				if (arg.Key.Equals(name, System.StringComparison.OrdinalIgnoreCase) && arg.Value.Kind != TypedConstantKind.Error) {
+					if (arg.Value.Value is T val2) {
+						result = val2;
+						return result is not null;
+					}
+					break;
 				}
-				break;
 			}
-		}
 
 		result = default;
 		return false;
@@ -89,6 +90,15 @@ internal static class Utilities {
 	internal static bool IsContainingTypePartial(this SyntaxNode symbol) {
 		var containingType = symbol.FirstAncestorOrSelf<TypeDeclarationSyntax>();
 		return containingType != null && containingType.Modifiers.Any(mod => mod.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.PartialKeyword));
+	}
+
+
+	internal static IEnumerable<CommandData> GetCommandAttributes(this IMethodSymbol input, string type) {
+		type = $"Leclair.StardewDelegateHelper.{type}";
+
+		return input.GetAttributes()
+			.Where(ad => ad.AttributeClass?.ToDisplayString() == type)
+			.Select(CommandData.Parse);
 	}
 
 

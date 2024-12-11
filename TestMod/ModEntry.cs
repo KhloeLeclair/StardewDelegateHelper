@@ -22,6 +22,13 @@ public partial class ModEntry : Mod {
 		RegisterTriggerActions();
 		RegisterTouchActions();
 		RegisterItemResolvers();
+		RegisterConsoleCommands();
+	}
+
+	[ConsoleCommand("Hello there.")]
+	[ConsoleCommand("general_kenobi", "what even")]
+	private void SomeCommand(string name, string[] args) {
+
 	}
 
 	[ItemResolver]

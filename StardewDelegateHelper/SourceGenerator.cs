@@ -28,6 +28,7 @@ namespace Leclair.StardewDelegateHelper;
 
 		});
 
+		ConsoleCommands.Initialize(context);
 		GSQConditions.Initialize(context);
 		ItemResolvers.Initialize(context);
 		SMAPIEvents.Initialize(context);

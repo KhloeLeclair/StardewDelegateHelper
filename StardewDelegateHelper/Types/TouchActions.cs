@@ -12,7 +12,9 @@ internal static class TouchActions {
 
 	internal static void Initialize(IncrementalGeneratorInitializationContext context) {
 		var checker = context.CompilationProvider.Select(GetChecker);
-		var methods = context.SyntaxProvider.CreateSyntaxProvider(
+
+		var methods = context.SyntaxProvider.ForAttributeWithMetadataName(
+			@"Leclair.StardewDelegateHelper.TouchActionAttribute",
 			predicate: Utilities.IsDecoratedMethod,
 			transform: TransformMethods
 		).Where(m => m is not null);
@@ -35,16 +37,14 @@ internal static class TouchActions {
 		);
 	}
 
-	internal static MethodInfo? TransformMethods(GeneratorSyntaxContext context, CancellationToken ct) {
-		var methodNode = (MethodDeclarationSyntax) context.Node;
-		if (context.SemanticModel.GetDeclaredSymbol(methodNode, ct) is not IMethodSymbol method || !method.CanBeReferencedByName)
+	internal static MethodInfo? TransformMethods(GeneratorAttributeSyntaxContext context, CancellationToken ct) {
+		var methodNode = (MethodDeclarationSyntax) context.TargetNode;
+		if (context.TargetSymbol is not IMethodSymbol method || !method.CanBeReferencedByName)
 			return null;
 
 		// Check if the method has our attribute.
-		var attrs = method.GetConditionAttributes("TouchActionAttribute");
-
-		// No attributes? Not something we care about, then.
-		if (!attrs.Any())
+		var attrs = method.GetConditionAttributes("TouchActionAttribute").ToEquatableArray();
+		if (attrs.IsEmpty)
 			return null;
 
 		// Get the mod version attributes.
@@ -53,7 +53,7 @@ internal static class TouchActions {
 		// Check if the containing type is partial, since that's important.
 		bool isPartial = methodNode.IsContainingTypePartial();
 
-		return new(method.ToEquatable(), attrs.ToEquatableArray(), modData.ToEquatableArray(), methodNode.GetEquatableLocation(), isPartial);
+		return new(method.ToEquatable(), attrs, modData.ToEquatableArray(), methodNode.GetEquatableLocation(), isPartial);
 	}
 
 	internal static IEnumerable<KeyValuePair<string, string>> GetEntriesForMethod(SourceProductionContext ctx, MethodInfo info, MethodChecker checker, State state) {
@@ -101,7 +101,7 @@ internal static class TouchActions {
 			if (data.Name is null)
 				nameWriter = $"nameof({method.Name})";
 			else
-				nameWriter = $"\"{data.Name}\"";
+				nameWriter = data.Name.ToLiteral();
 
 			if (data.IncludePrefix)
 				nameWriter = $"prefix + {nameWriter}";

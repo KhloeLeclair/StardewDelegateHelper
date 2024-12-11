@@ -8,13 +8,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace StardewDelegateHelper.Types;
 
-internal static class ItemResolvers {
+internal static class ConsoleCommands {
 
 	internal static void Initialize(IncrementalGeneratorInitializationContext context) {
 		var checker = context.CompilationProvider.Select(GetChecker);
 
 		var methods = context.SyntaxProvider.ForAttributeWithMetadataName(
-			@"Leclair.StardewDelegateHelper.ItemResolverAttribute",
+			@"Leclair.StardewDelegateHelper.ConsoleCommandAttribute",
 			predicate: Utilities.IsDecoratedMethod,
 			transform: TransformMethods
 		).Where(m => m is not null);
@@ -22,7 +22,7 @@ internal static class ItemResolvers {
 		var combined = methods.Collect().Combine(checker);
 
 		context.RegisterSourceOutput(combined, (ctx, tuple) => Utilities.GenerateMethodCode(
-			ctx, tuple.Left, "ItemResolvers", tuple.Right,
+			ctx, tuple.Left, "ConsoleCommands", tuple.Right,
 			GetEntriesForMethod,
 			MakeFinalMethods
 		));
@@ -30,7 +30,10 @@ internal static class ItemResolvers {
 
 
 	internal static MethodChecker GetChecker(Compilation compilation, CancellationToken ct) {
-		return MethodChecker.FromDelegate(compilation, @"StardewValley.Delegates.ResolveItemQueryDelegate");
+		return MethodChecker.Create(
+			compilation.GetSpecialType(SpecialType.System_String),
+			compilation.CreateArrayTypeSymbol(compilation.GetSpecialType(SpecialType.System_String))
+		);
 	}
 
 	internal static MethodInfo? TransformMethods(GeneratorAttributeSyntaxContext context, CancellationToken ct) {
@@ -39,13 +42,12 @@ internal static class ItemResolvers {
 			return null;
 
 		// Check if the method has our attribute.
-		var attrs = method.GetConditionAttributes("ItemResolverAttribute").ToEquatableArray();
+		var attrs = method.GetCommandAttributes("ConsoleCommandAttribute").ToEquatableArray();
 		if (attrs.IsEmpty)
 			return null;
 
 		// Get the mod version attributes.
 		var modData = method.GetModLoadedAttributes();
-
 		// Check if the containing type is partial, since that's important.
 		bool isPartial = methodNode.IsContainingTypePartial();
 
@@ -58,9 +60,9 @@ internal static class ItemResolvers {
 		// Check the method has valid parameters.
 		if (!checker.Matches(method, out string? error)) {
 			ctx.ReportError(
-				"SDH601",
-				"Invalid Item Resolver Delegate",
-				$"Method has invalid signature for item resolver delegate: {error}",
+				"SDH701",
+				"Invalid Console Command Delegate",
+				$"Method has invalid signature for console command delegate: {error}",
 				info.Location
 			);
 
@@ -71,8 +73,7 @@ internal static class ItemResolvers {
 			state.HadModCheck = true;
 
 		// Variables in the generated method:
-		// - string prefix: The prefix that should be prepended to each entry. If this is null, it defaults to "{ModManifest.UniqueID}_"
-		//                  assuming, of course, we have access to the ModManifest to read it.
+		// - IModHelper helper: A mod helper, needed for registering stuff.
 
 		HashSet<string> visitedNames = [];
 		bool first = true;
@@ -80,27 +81,23 @@ internal static class ItemResolvers {
 
 		foreach (var data in info.Data) {
 			string name = data.Name ?? method.Name;
-			string prefixed = data.IncludePrefix ? $"SOME UNLIKELY _PREFIX_{name}" : name;
-			if (visitedNames.Contains(prefixed)) {
+			if (visitedNames.Contains(name)) {
 				ctx.ReportError(
-					"SDH602",
-					"Duplicate Item Resolver Name",
+					"SDH702",
+					"Duplicate Console Command Name",
 					$"Method '{method.ToDisplayString()}' has been registered with the same name multiple times.",
 					info.Location
 				);
 				continue;
 			}
 
-			visitedNames.Add(prefixed);
+			visitedNames.Add(name);
 
 			string nameWriter;
 			if (data.Name is null)
 				nameWriter = $"nameof({method.Name})";
 			else
 				nameWriter = data.Name.ToLiteral();
-
-			if (data.IncludePrefix)
-				nameWriter = $"prefix + {nameWriter}";
 
 			if (first) {
 				first = false;
@@ -110,7 +107,7 @@ internal static class ItemResolvers {
 				}
 			}
 
-			yield return new("add", $"{indentation}StardewValley.Internal.ItemQueryResolver.Register({nameWriter}, {method.Name});");
+			yield return new("add", $"{indentation}helper.ConsoleCommands.Add({nameWriter}, {data.Description.ToLiteral()}, {method.Name});");
 		}
 
 		if (!first && info.ModVersionData.Length > 0)
@@ -120,60 +117,32 @@ internal static class ItemResolvers {
 	internal static string? MakeFinalMethods(string key, INamedTypeSymbol containingType, bool isStatic, IEnumerable<string> content, State state) {
 		// Check which values we can read off the containing type.
 		var modHelper = containingType.GetMemberByType(Constants.IModHelper, isStatic);
-		bool needsHelper = state.HadModCheck;
 
 		StringBuilder sb = new();
 
 		string ss = isStatic ? "static " : "";
 		string? methodName = key switch {
-			"add" => isStatic ? "RegisterStaticItemResolvers" : "RegisterItemResolvers",
+			"add" => isStatic ? "RegisterStaticConsoleCommands" : "RegisterConsoleCommands",
 			_ => null
 		};
 
 		if (methodName is null)
 			return null;
 
-		// We always need access to the mod's unique ID. This can be read
-		// from either the mod manifest or the mod helper.
-
-		// We *may* need access to the mod registry from the mod helper.
+		// We always need access to the mod helper. We never need a prefix.
 
 		// Possible signatures:
-		// RegisterItemResolvers(IModHelper helper, string? prefix = null)
-		// RegisterItemResolvers(IModHelper? helper = null, string? prefix = null)
-		// RegisterItemResolvers(string? prefix)
-		// RegisterItemResolvers(string prefix)
+		// RegisterConsoleCommands(IModHelper helper)
+		// RegisterConsoleCommands(IModHelper? helper = null)
 
 		if (modHelper is null) {
-			if (needsHelper) {
-				// RegisterItemResolvers(IModHelper helper, string? prefix = null)
-				sb.AppendLine($"\tinternal {ss}void {methodName}({Constants.IModHelper} helper, string? prefix = null) {{");
-				sb.AppendLine($"\t\tprefix ??= $\"{{helper.ModRegistry.ModID}}_\";");
-
-				// Do not emit prefix-only, since a helper is required.
-
-			} else {
-				// RegisterItemResolvers(IModHelper helper, string? prefix = null)
-				// this calls the prefix-only method.
-				sb.AppendLine($"\tinternal {ss}void {methodName}({Constants.IModHelper} helper, string? prefix = null) {{");
-				sb.AppendLine($"\t\t{methodName}(prefix ?? $\"{{helper.ModRegistry.ModID}}_\");");
-				sb.AppendLine($"\t}}");
-
-				// RegisterItemResolvers(string prefix)
-				sb.AppendLine($"\tinternal {ss}void {methodName}(string prefix) {{");
-			}
+			// RegisterConsoleCommands(IModHelper helper)
+			sb.AppendLine($"\tinternal {ss}void {methodName}({Constants.IModHelper} helper) {{");
 
 		} else {
-			// RegisterItemResolvers(string? prefix)
-			// this calls the optional-helper method
-			sb.AppendLine($"\tinternal {ss}void {methodName}(string? prefix) {{");
-			sb.AppendLine($"\t\t{methodName}({modHelper.Name}, prefix);");
-			sb.AppendLine($"\t}}");
-
-			// RegisterItemResolvers(IModHelper? helper = null, string? prefix = null)
-			sb.AppendLine($"\tinternal {ss}void {methodName}({Constants.IModHelper}? helper = null, string? prefix = null) {{");
+			// RegisterConsoleCommands(IModHelper? helper = null)
+			sb.AppendLine($"\tinternal {ss}void {methodName}({Constants.IModHelper}? helper = null) {{");
 			sb.AppendLine($"\t\thelper ??= {modHelper.Name};");
-			sb.AppendLine($"\t\tprefix ??= $\"{{helper.ModRegistry.ModID}}_\";");
 		}
 
 		// Method body
@@ -187,7 +156,7 @@ internal static class ItemResolvers {
 
 	internal record MethodInfo(
 		EquatableSymbol<IMethodSymbol> Method,
-		EquatableArray<ConditionData> Data,
+		EquatableArray<CommandData> Data,
 		EquatableArray<ModVersionData> ModVersionData,
 		EquatableLocation? Location,
 		bool ContainingTypeIsPartial

@@ -66,6 +66,34 @@ internal static class SDHInternal {{
 public class SMAPIEventAttribute : global::System.Attribute {{ }}
 
 /// <summary>
+/// Methods decorated with this attribute will be registered via SMAPI's
+/// <see cref=""ICommandHelper.Add"" /> method within a generated
+/// <c>RegisterConsoleCommands()</c> method on their containing class.
+/// </summary>
+[global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple=true)]
+{ExcludeCodeCoverage}
+public class ConsoleCommandAttribute : global::System.Attribute {{
+
+	public string? Name {{ get; }}
+
+	public string Documentation {{ get; }}
+
+	/// <param name=""documentation"">The documentation string to register this console command with.</param>
+	public ConsoleCommandAttribute(string documentation) {{
+		Name = null;
+		Documentation = documentation;
+	}}
+
+	/// <param name=""name"">The name to register this console command with. If this is null, we'll use the method's name.</param>
+	/// <param name=""documentation"">The documentation string to register this console command with.</param>
+	public ConsoleCommandAttribute(string? name, string documentation) {{
+		Name = name;
+		Documentation = documentation;
+	}}
+
+}}
+
+/// <summary>
 /// Methods decorated with this attribute will be registered via the
 /// game's <see cref=""TriggerActionManager.RegisterAction"" /> method
 /// within a generated <c>RegisterTriggerActions()</c> method on their

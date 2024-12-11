@@ -15,7 +15,9 @@ internal static class SMAPIEvents {
 
 	internal static void Initialize(IncrementalGeneratorInitializationContext context) {
 		var modEventsType = context.CompilationProvider.Select(GetEventSymbol);
-		var methods = context.SyntaxProvider.CreateSyntaxProvider(
+
+		var methods = context.SyntaxProvider.ForAttributeWithMetadataName(
+			@"Leclair.StardewDelegateHelper.SMAPIEventAttribute",
 			predicate: Utilities.IsDecoratedMethod,
 			transform: TransformMethods
 		).Where(m => m is not null);
@@ -87,9 +89,9 @@ internal static class SMAPIEvents {
 	/// </summary>
 	/// <param name="context">The context of the syntax node</param>
 	/// <param name="ct">A cancellation token we pass along to stuff</param>
-	internal static MethodInfo? TransformMethods(GeneratorSyntaxContext context, CancellationToken ct) {
-		var methodNode = (MethodDeclarationSyntax) context.Node;
-		if (context.SemanticModel.GetDeclaredSymbol(methodNode, ct) is not IMethodSymbol method || !method.CanBeReferencedByName)
+	internal static MethodInfo? TransformMethods(GeneratorAttributeSyntaxContext context, CancellationToken ct) {
+		var methodNode = (MethodDeclarationSyntax) context.TargetNode;
+		if (context.TargetSymbol is not IMethodSymbol method || !method.CanBeReferencedByName)
 			return null;
 
 		// Check if the method has our attribute.

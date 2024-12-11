@@ -37,10 +37,8 @@ internal static class GSQConditions {
 			return null;
 
 		// Check if the method has our attribute.
-		var attrs = method.GetConditionAttributes("GSQConditionAttribute");
-
-		// No attributes? Not something we care about, then.
-		if (!attrs.Any())
+		var attrs = method.GetConditionAttributes("GSQConditionAttribute").ToEquatableArray();
+		if (attrs.IsEmpty)
 			return null;
 
 		// Get the mod version attributes.
@@ -49,7 +47,7 @@ internal static class GSQConditions {
 		// Check if the containing type is partial, since that's important.
 		bool isPartial = methodNode.IsContainingTypePartial();
 
-		return new(method.ToEquatable(), attrs.ToEquatableArray(), modData.ToEquatableArray(), methodNode.GetEquatableLocation(), isPartial);
+		return new(method.ToEquatable(), attrs, modData.ToEquatableArray(), methodNode.GetEquatableLocation(), isPartial);
 	}
 
 	internal static IEnumerable<KeyValuePair<string, string>> GetEntriesForMethod(SourceProductionContext ctx, MethodInfo info, MethodChecker checker, State state) {
@@ -99,7 +97,7 @@ internal static class GSQConditions {
 			if (data.Name is null)
 				nameWriter = $"nameof({method.Name})";
 			else
-				nameWriter = $"\"{data.Name}\"";
+				nameWriter = data.Name.ToLiteral();
 
 			if (data.IncludePrefix)
 				nameWriter = $"prefix + {nameWriter}";
