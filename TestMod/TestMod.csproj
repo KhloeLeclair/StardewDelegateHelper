@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<UniqueID>Leclair.TestMod</UniqueID>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Leclair.Stardew.ModManifestBuilder" Version="2.4.1" />
+		<PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.3.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\StardewDelegateHelper\StardewDelegateHelper.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
+	</ItemGroup>
+
+</Project>
