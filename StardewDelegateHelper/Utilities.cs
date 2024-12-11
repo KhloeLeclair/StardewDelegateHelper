@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -8,6 +9,9 @@ using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+using StardewDelegateHelper.Models;
+using StardewDelegateHelper.SystemStuff;
 
 namespace StardewDelegateHelper;
 internal static class Utilities {
@@ -20,7 +24,7 @@ internal static class Utilities {
 
 		if (name != null)
 			foreach (var arg in input.NamedArguments) {
-				if (arg.Key.Equals(name, System.StringComparison.OrdinalIgnoreCase) && arg.Value.Kind != TypedConstantKind.Error) {
+				if (arg.Key.Equals(name, StringComparison.OrdinalIgnoreCase) && arg.Value.Kind != TypedConstantKind.Error) {
 					if (arg.Value.Value is T val2) {
 						result = val2;
 						return result is not null;

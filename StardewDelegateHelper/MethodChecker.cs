@@ -3,6 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 
 using Microsoft.CodeAnalysis;
 
+using StardewDelegateHelper.SystemStuff;
+
 namespace StardewDelegateHelper;
 
 internal readonly struct MethodChecker(

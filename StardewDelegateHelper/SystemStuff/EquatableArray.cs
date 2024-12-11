@@ -10,7 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-namespace StardewDelegateHelper;
+namespace StardewDelegateHelper.SystemStuff;
 
 /// <summary>
 /// Extensions for <see cref="EquatableArray{T}"/>.
@@ -112,7 +112,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
 	/// <returns>The <see cref="ImmutableArray{T}"/> from the current <see cref="EquatableArray{T}"/>.</returns>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	public ImmutableArray<T> AsImmutableArray() {
-		return Unsafe.As<T[]?, ImmutableArray<T>>(ref Unsafe.AsRef(in this.array));
+		return Unsafe.As<T[]?, ImmutableArray<T>>(ref Unsafe.AsRef(in array));
 	}
 
 	/// <summary>

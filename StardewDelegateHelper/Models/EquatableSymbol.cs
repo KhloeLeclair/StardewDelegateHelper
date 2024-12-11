@@ -2,7 +2,7 @@ using System;
 
 using Microsoft.CodeAnalysis;
 
-namespace StardewDelegateHelper;
+namespace StardewDelegateHelper.Models;
 
 
 internal readonly struct EquatableSymbol<T>(T value) : IEquatable<EquatableSymbol<T>> where T : ISymbol {

@@ -1,5 +1,7 @@
 using Microsoft.CodeAnalysis;
 
+using StardewDelegateHelper.Models;
+
 namespace StardewDelegateHelper;
 
 

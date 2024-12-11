@@ -1,6 +1,6 @@
 using Microsoft.CodeAnalysis;
 
-namespace StardewDelegateHelper;
+namespace StardewDelegateHelper.Models;
 
 internal record ConditionData(string? Name, bool IncludePrefix) {
 

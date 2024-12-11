@@ -6,6 +6,9 @@ using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
+using StardewDelegateHelper.Models;
+using StardewDelegateHelper.SystemStuff;
+
 namespace StardewDelegateHelper.Types;
 
 internal static class TouchActions {

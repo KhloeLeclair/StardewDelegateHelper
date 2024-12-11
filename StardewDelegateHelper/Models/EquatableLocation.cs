@@ -2,7 +2,7 @@ using System;
 
 using Microsoft.CodeAnalysis;
 
-namespace StardewDelegateHelper;
+namespace StardewDelegateHelper.Models;
 
 internal readonly struct EquatableLocation(Location location) : IEquatable<EquatableLocation> {
 

@@ -1,4 +1,4 @@
-namespace StardewDelegateHelper;
+namespace StardewDelegateHelper.Models;
 
 internal class State {
 

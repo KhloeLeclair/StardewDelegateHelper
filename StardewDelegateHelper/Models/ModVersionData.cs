@@ -2,7 +2,7 @@ using System;
 
 using Microsoft.CodeAnalysis;
 
-namespace StardewDelegateHelper;
+namespace StardewDelegateHelper.Models;
 
 internal record ModVersionData(string UniqueID, string? MinVersion, string? MaxVersion, bool Inverted) {
 
